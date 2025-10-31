@@ -133,6 +133,7 @@ public class PresupuestosRepository
     private List<PresupuestosDetalle> ObtenerDetallesPresupuesto(int presupuestoId)
     {
         var detalles = new List<PresupuestosDetalle>();
+        // CORREGIDO: Nombres de columnas
         var query = @"SELECT pd.Cantidad, p.IdProducto, p.Descripcion, p.Precio 
                      FROM PresupuestosDetalle pd 
                      INNER JOIN Productos p ON pd.IdProducto = p.IdProducto 
@@ -149,7 +150,6 @@ public class PresupuestosRepository
             {
                 var detalle = new PresupuestosDetalle
                 {
-                    // CORREGIDO: Nombres de columnas
                     Cantidad = Convert.ToInt32(reader["Cantidad"]),
                     Producto = new Productos
                     {
