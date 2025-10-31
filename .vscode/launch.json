@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/TP7.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/tl2-tp7-2025-Fer-Developer-Code.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
