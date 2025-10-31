@@ -7,32 +7,82 @@ namespace TP7.ProductoRepositorySpace;
 
 public class ProductoRepository
 {
-    // El 'DB/Tienda.db' debe estar en la raíz de tu proyecto API
-    private string cadenaConexion = "Data Source=DB/Tienda.db";
+    private readonly string cadenaConexion;
+
+    public ProductoRepository()
+    {
+        // Conexión a la base de datos SQLite
+        cadenaConexion = "Data Source=DB/Tienda.db";
+    }
 
     public List<Productos> GetProducts()
     {
-        // CORREGIDO: Consulta usa 'IdProducto', 'Descripcion', 'Precio'
-        string query = "SELECT IdProducto, Descripcion, Precio FROM Productos";
-        List<Productos> listadoProductos = new List<Productos>();
-        using var conexion = new SqliteConnection(cadenaConexion);
-        conexion.Open();
-        var command = new SqliteCommand(query, conexion);
-        using (SqliteDataReader reader = command.ExecuteReader())
+        var listadoProductos = new List<Productos>();
+        
+        // Consulta parametrizada para evitar SQL injection
+        const string query = @"
+            SELECT *
+            FROM Productos";
+
+        try
         {
+            using var conexion = new SqliteConnection(cadenaConexion);
+            conexion.Open();
+            using var command = new SqliteCommand(query, conexion);
+
+            using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                var product = new Productos(){
-                    // CORREGIDO: Nombres de columnas con mayúsculas
+                listadoProductos.Add(new Productos
+                {
                     IdProducto = Convert.ToInt32(reader["IdProducto"]),
                     Descripcion = reader["Descripcion"].ToString(),
-                    Precio = Convert.ToDecimal(reader["Precio"]) 
-                };
-                listadoProductos.Add(product);
+                    Precio = Convert.ToDecimal(reader["Precio"])
+                });
             }
         }
-        conexion.Close();
+        catch (Exception ex)
+        {
+            throw new Exception("Error al obtener productos: " + ex.Message);
+        }
+
         return listadoProductos;
+    }
+
+    public Productos GetById(int id)
+    {
+        const string query = @"
+            SELECT IdProducto, 
+                   Descripcion, 
+                   Precio 
+            FROM Productos 
+            WHERE IdProducto = @id";
+
+        try
+        {
+            using var conexion = new SqliteConnection(cadenaConexion);
+            conexion.Open();
+            using var command = new SqliteCommand(query, conexion);
+            
+            // Uso seguro de parámetros
+            command.Parameters.AddWithValue("@id", id);
+
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                return new Productos
+                {
+                    IdProducto = Convert.ToInt32(reader["IdProducto"]),
+                    Descripcion = reader["Descripcion"].ToString(),
+                    Precio = Convert.ToDecimal(reader["Precio"])
+                };
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error al obtener producto {id}: " + ex.Message);
+        }
     }
 
     public Productos Create(Productos producto)
@@ -71,33 +121,6 @@ public class ProductoRepository
         conexion.Close();
         
         return rowsAffected > 0;
-    }
-
-    public Productos GetById(int id)
-    {
-        // CORREGIDO: Nombres de columnas
-        var query = "SELECT IdProducto, Descripcion, Precio FROM Productos WHERE IdProducto = @id";
-        using var conexion = new SqliteConnection(cadenaConexion);
-        conexion.Open();
-        var command = new SqliteCommand(query, conexion);
-        command.Parameters.Add(new SqliteParameter("@id", id));
-
-        using (SqliteDataReader reader = command.ExecuteReader())
-        {
-            if (reader.Read())
-            {
-                var producto = new Productos()
-                {
-                    // CORREGIDO: Nombres de columnas
-                    IdProducto = Convert.ToInt32(reader["IdProducto"]),
-                    Descripcion = reader["Descripcion"].ToString(),
-                    Precio = Convert.ToDecimal(reader["Precio"]) 
-                };
-                return producto;
-            }
-        }
-        conexion.Close();
-        return null;
     }
 
     public bool Delete(int id)

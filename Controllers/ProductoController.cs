@@ -5,16 +5,33 @@ using TP7.ProductosModel;
 
 namespace TP7.Controllers;
 
+/// <summary>
+/// Controlador para gestionar operaciones con productos
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class ProductosController : ControllerBase
 {
-    private ProductoRepository _productoRepository;
-    public ProductosController(){
+    private readonly ProductoRepository _productoRepository;
+
+    /// <summary>
+    /// Constructor del controlador de productos
+    /// </summary>
+    public ProductosController()
+    {
         _productoRepository = new ProductoRepository();
     }
 
+    /// <summary>
+    /// Crea un nuevo producto
+    /// </summary>
+    /// <param name="producto">Datos del producto a crear</param>
+    /// <returns>El producto creado con su ID asignado</returns>
+    /// <response code="200">Producto creado exitosamente</response>
+    /// <response code="400">Error al crear el producto</response>
     [HttpPost]
+    [ProducesResponseType(typeof(Productos), 200)]
+    [ProducesResponseType(400)]
     public ActionResult<Productos> CrearProducto(Productos producto)
     {
         try
@@ -28,7 +45,19 @@ public class ProductosController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Modifica un producto existente
+    /// </summary>
+    /// <param name="id">ID del producto a modificar</param>
+    /// <param name="producto">Nuevos datos del producto</param>
+    /// <returns>Resultado de la operación</returns>
+    /// <response code="200">Producto modificado exitosamente</response>
+    /// <response code="404">Producto no encontrado</response>
+    /// <response code="400">Error al modificar el producto</response>
     [HttpPut("{id}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(400)]
     public IActionResult ModificarProducto(int id, Productos producto)
     {
         try
@@ -46,7 +75,16 @@ public class ProductosController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Obtiene un producto por su ID
+    /// </summary>
+    /// <param name="id">ID del producto a buscar</param>
+    /// <returns>Producto encontrado</returns>
+    /// <response code="200">Producto encontrado</response>
+    /// <response code="404">Producto no encontrado</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Productos), 200)]
+    [ProducesResponseType(404)]
     public ActionResult<Productos> GetById(int id)
     {
         var producto = _productoRepository.GetById(id);
@@ -57,7 +95,18 @@ public class ProductosController : ControllerBase
         return Ok(producto);
     }
 
+    /// <summary>
+    /// Elimina un producto por su ID
+    /// </summary>
+    /// <param name="id">ID del producto a eliminar</param>
+    /// <returns>Resultado de la operación</returns>
+    /// <response code="200">Producto eliminado exitosamente</response>
+    /// <response code="404">Producto no encontrado</response>
+    /// <response code="400">Error al eliminar el producto</response>
     [HttpDelete("{id}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(400)]
     public IActionResult EliminarProducto(int id)
     {
         try
@@ -75,8 +124,15 @@ public class ProductosController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Obtiene todos los productos
+    /// </summary>
+    /// <returns>Lista de todos los productos</returns>
+    /// <response code="200">Lista de productos obtenida exitosamente</response>
     [HttpGet]
-    public IActionResult GetAll(){
+    [ProducesResponseType(typeof(List<Productos>), 200)]
+    public IActionResult GetAll()
+    {
         var listado = _productoRepository.GetProducts();
         return Ok(listado);
     }

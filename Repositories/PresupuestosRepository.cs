@@ -9,34 +9,92 @@ namespace TP7.PresupuestosRepositorySpace;
 
 public class PresupuestosRepository
 {
-    private string cadenaConexion = "Data Source=DB/Tienda.db";
+    private readonly string cadenaConexion;
+
+    public PresupuestosRepository()
+    {
+        cadenaConexion = "Data Source=DB/Tienda.db";
+    }
 
     public Presupuesto Create(Presupuesto presupuesto)
     {
-        // CORREGIDO: Nombres de columnas
-        var query = @"INSERT INTO Presupuestos (NombreDestinatario, FechaCreacion) 
-                     VALUES (@nombre, @fecha);
-                     SELECT last_insert_rowid();";
-        
-        using var conexion = new SqliteConnection(cadenaConexion);
-        conexion.Open();
-        var command = new SqliteCommand(query, conexion);
-        
-        command.Parameters.Add(new SqliteParameter("@nombre", presupuesto.NombreDestinatario));
-        command.Parameters.Add(new SqliteParameter("@fecha", presupuesto.FechaCreacion));
-        
-        presupuesto.IdPresupuesto = Convert.ToInt32(command.ExecuteScalar());
+        const string query = @"
+            INSERT INTO Presupuestos (
+                NombreDestinatario, 
+                FechaCreacion
+            ) VALUES (
+                @nombre, 
+                @fecha
+            );
+            SELECT last_insert_rowid();";
 
-        if (presupuesto.Detalle != null)
+        try
         {
-            foreach (var detalle in presupuesto.Detalle)
+            using var conexion = new SqliteConnection(cadenaConexion);
+            conexion.Open();
+            using var transaction = conexion.BeginTransaction();
+
+            try
             {
-                // CORREGIDO: Nombres de columnas
-                AgregarProductoAPresupuesto(presupuesto.IdPresupuesto, detalle.Producto.IdProducto, detalle.Cantidad);
+                using var command = new SqliteCommand(query, conexion, transaction);
+                command.Parameters.AddWithValue("@nombre", presupuesto.NombreDestinatario);
+                command.Parameters.AddWithValue("@fecha", presupuesto.FechaCreacion);
+
+                presupuesto.IdPresupuesto = Convert.ToInt32(command.ExecuteScalar());
+
+                // Agregar detalles del presupuesto
+                if (presupuesto.Detalle != null)
+                {
+                    foreach (var detalle in presupuesto.Detalle)
+                    {
+                        AgregarProductoAPresupuestoConTransaction(
+                            presupuesto.IdPresupuesto,
+                            detalle.Producto.IdProducto,
+                            detalle.Cantidad,
+                            conexion,
+                            transaction
+                        );
+                    }
+                }
+
+                transaction.Commit();
+                return presupuesto;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
             }
         }
-        
-        return presupuesto;
+        catch (Exception ex)
+        {
+            throw new Exception("Error al crear presupuesto: " + ex.Message);
+        }
+    }
+
+    private void AgregarProductoAPresupuestoConTransaction(
+        int presupuestoId, 
+        int productoId, 
+        int cantidad,
+        SqliteConnection conexion,
+        SqliteTransaction transaction)
+    {
+        const string query = @"
+            INSERT INTO PresupuestosDetalle (
+                IdPresupuesto, 
+                IdProducto, 
+                Cantidad
+            ) VALUES (
+                @presupuestoId, 
+                @productoId, 
+                @cantidad
+            )";
+
+        using var command = new SqliteCommand(query, conexion, transaction);
+        command.Parameters.AddWithValue("@presupuestoId", presupuestoId);
+        command.Parameters.AddWithValue("@productoId", productoId);
+        command.Parameters.AddWithValue("@cantidad", cantidad);
+        command.ExecuteNonQuery();
     }
 
     public List<Presupuesto> GetAll()
