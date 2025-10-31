@@ -2,7 +2,8 @@ using TP7.ProductosModel;
 
 namespace TP7.PresupuestosDetalleModel;
 
-public class PresupuestosDetalle{
-    Productos _producto;
-    int _cantidad;
+public class PresupuestosDetalle
+{
+    public Productos Producto { get; set; }
+    public int Cantidad { get; set; }
 }

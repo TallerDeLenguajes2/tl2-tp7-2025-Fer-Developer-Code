@@ -4,26 +4,35 @@ namespace TP7.PresupuestoModel;
 
 public class Presupuesto
 {
-    int _idPresupuesto;
-    string? _nombreDestinatario;
-    DateTime _fechaCreacion;
-    List<PresupuestosDetalle> _detalle;
+    public int IdPresupuesto { get; set; }
+    public string NombreDestinatario { get; set; }
+    public DateTime FechaCreacion { get; set; }
+    public List<PresupuestosDetalle> Detalle { get; set; }
 
     public int MontoPresupuesto()
     {
-        int monto = 1;
-        return monto;
+        int montoTotal = 0;
+        foreach(var item in Detalle)
+        {
+            montoTotal += item.Producto.Precio * item.Cantidad;
+        }
+        return montoTotal;
     }
 
     public int MontoPresupuestoConIVA()
     {
-        int monto = 1;
-        return monto;
+        int montoBase = MontoPresupuesto();
+        double montoConIva = montoBase * 1.21;
+        return (int)montoConIva;
     }
 
     public int CantidadProductos()
     {
-        int monto = 1;
-        return monto;
+        int cantidadTotal = 0;
+        foreach(var item in Detalle)
+        {
+            cantidadTotal += item.Cantidad;
+        }
+        return cantidadTotal;
     }
 }
