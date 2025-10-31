@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using Microsoft.Data.Sqlite;
 using TP7.ProductosModel;
+using System;
+
+using System.Collections.Generic;
 
 namespace TP7.ProductoRepositorySpace;
 

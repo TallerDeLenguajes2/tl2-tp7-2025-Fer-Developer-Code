@@ -3,6 +3,8 @@ using TP7.PresupuestoModel;
 using TP7.PresupuestosRepositorySpace;
 using TP7.ProductosModel;
 using TP7.PresupuestosDetalleModel;
+using System;
+using System.Collections.Generic;
 
 namespace TP7.Controllers;
 
