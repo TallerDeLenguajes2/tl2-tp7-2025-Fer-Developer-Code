@@ -1,19 +1,19 @@
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using TP7.ProductosModel;
 using System;
-
-using System.Collections.Generic;
 
 namespace TP7.ProductoRepositorySpace;
 
 public class ProductoRepository
 {
-    private string cadenaConexion = "Data Source = DB/Tienda.db";
+    // El 'DB/Tienda.db' debe estar en la raíz de tu proyecto API
+    private string cadenaConexion = "Data Source=DB/Tienda.db";
 
     public List<Productos> GetProducts()
     {
-        string query = "Select * FROM Productos";
+        // CORREGIDO: Consulta usa 'IdProducto', 'Descripcion', 'Precio'
+        string query = "SELECT IdProducto, Descripcion, Precio FROM Productos";
         List<Productos> listadoProductos = new List<Productos>();
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
@@ -23,9 +23,10 @@ public class ProductoRepository
             while (reader.Read())
             {
                 var product = new Productos(){
-                    IdProducto = Convert.ToInt32(reader["id"]),
+                    // CORREGIDO: Nombres de columnas con mayúsculas
+                    IdProducto = Convert.ToInt32(reader["IdProducto"]),
                     Descripcion = reader["Descripcion"].ToString(),
-                    Precio = Convert.ToInt32(reader["precio"])
+                    Precio = Convert.ToDecimal(reader["Precio"]) // CORREGIDO: Convertir a Decimal
                 };
                 listadoProductos.Add(product);
             }
@@ -36,8 +37,9 @@ public class ProductoRepository
 
     public Productos Create(Productos producto)
     {
-        var query = @"INSERT INTO Productos (Descripcion, precio) VALUES (@descripcion, @precio);
-                     SELECT last_insert_rowid();"; // Obtiene el id del último registro insertado
+        // CORREGIDO: Nombres de columnas
+        var query = @"INSERT INTO Productos (Descripcion, Precio) VALUES (@descripcion, @precio);
+                     SELECT last_insert_rowid();"; 
         
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
@@ -46,6 +48,7 @@ public class ProductoRepository
         command.Parameters.Add(new SqliteParameter("@descripcion", producto.Descripcion));
         command.Parameters.Add(new SqliteParameter("@precio", producto.Precio));
         
+        // ExecuteScalar devuelve un 'long' (Int64), es más seguro convertirlo así
         producto.IdProducto = Convert.ToInt32(command.ExecuteScalar());
         conexion.Close();
         
@@ -54,7 +57,8 @@ public class ProductoRepository
 
     public bool Update(int id, Productos producto)
     {
-        var query = "UPDATE Productos SET Descripcion = @descripcion, precio = @precio WHERE id = @id";
+        // CORREGIDO: Nombres de columnas
+        var query = "UPDATE Productos SET Descripcion = @descripcion, Precio = @precio WHERE IdProducto = @id";
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
         var command = new SqliteCommand(query, conexion);
@@ -71,7 +75,8 @@ public class ProductoRepository
 
     public Productos GetById(int id)
     {
-        var query = "SELECT * FROM Productos WHERE id = @id";
+        // CORREGIDO: Nombres de columnas
+        var query = "SELECT IdProducto, Descripcion, Precio FROM Productos WHERE IdProducto = @id";
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
         var command = new SqliteCommand(query, conexion);
@@ -83,9 +88,10 @@ public class ProductoRepository
             {
                 var producto = new Productos()
                 {
-                    IdProducto = Convert.ToInt32(reader["id"]),
+                    // CORREGIDO: Nombres de columnas
+                    IdProducto = Convert.ToInt32(reader["IdProducto"]),
                     Descripcion = reader["Descripcion"].ToString(),
-                    Precio = Convert.ToInt32(reader["precio"])
+                    Precio = Convert.ToDecimal(reader["Precio"]) // CORREGIDO: Convertir a Decimal
                 };
                 return producto;
             }
@@ -96,7 +102,8 @@ public class ProductoRepository
 
     public bool Delete(int id)
     {
-        var query = "DELETE FROM Productos WHERE id = @id";
+        // CORREGIDO: Nombres de columnas
+        var query = "DELETE FROM Productos WHERE IdProducto = @id";
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
         var command = new SqliteCommand(query, conexion);

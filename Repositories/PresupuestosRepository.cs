@@ -13,7 +13,8 @@ public class PresupuestosRepository
 
     public Presupuesto Create(Presupuesto presupuesto)
     {
-        var query = @"INSERT INTO Presupuestos (nombreDestinatario, fechaCreacion) 
+        // CORREGIDO: Nombres de columnas
+        var query = @"INSERT INTO Presupuestos (NombreDestinatario, FechaCreacion) 
                      VALUES (@nombre, @fecha);
                      SELECT last_insert_rowid();";
         
@@ -26,11 +27,11 @@ public class PresupuestosRepository
         
         presupuesto.IdPresupuesto = Convert.ToInt32(command.ExecuteScalar());
 
-        // Guardar los detalles
         if (presupuesto.Detalle != null)
         {
             foreach (var detalle in presupuesto.Detalle)
             {
+                // CORREGIDO: Nombres de columnas
                 AgregarProductoAPresupuesto(presupuesto.IdPresupuesto, detalle.Producto.IdProducto, detalle.Cantidad);
             }
         }
@@ -41,7 +42,8 @@ public class PresupuestosRepository
     public List<Presupuesto> GetAll()
     {
         var presupuestos = new List<Presupuesto>();
-        var query = "SELECT * FROM Presupuestos";
+        // CORREGIDO: Nombres de columnas
+        var query = "SELECT IdPresupuesto, NombreDestinatario, FechaCreacion FROM Presupuestos";
         
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
@@ -53,10 +55,11 @@ public class PresupuestosRepository
             {
                 var presupuesto = new Presupuesto
                 {
-                    IdPresupuesto = Convert.ToInt32(reader["id"]),
-                    NombreDestinatario = reader["nombreDestinatario"].ToString(),
-                    FechaCreacion = DateTime.Parse(reader["fechaCreacion"].ToString()),
-                    Detalle = ObtenerDetallesPresupuesto(Convert.ToInt32(reader["id"]))
+                    // CORREGIDO: Nombres de columnas
+                    IdPresupuesto = Convert.ToInt32(reader["IdPresupuesto"]),
+                    NombreDestinatario = reader["NombreDestinatario"].ToString(),
+                    FechaCreacion = DateTime.Parse(reader["FechaCreacion"].ToString()),
+                    Detalle = ObtenerDetallesPresupuesto(Convert.ToInt32(reader["IdPresupuesto"]))
                 };
                 presupuestos.Add(presupuesto);
             }
@@ -66,7 +69,8 @@ public class PresupuestosRepository
 
     public Presupuesto GetById(int id)
     {
-        var query = "SELECT * FROM Presupuestos WHERE id = @id";
+        // CORREGIDO: Nombres de columnas
+        var query = "SELECT IdPresupuesto, NombreDestinatario, FechaCreacion FROM Presupuestos WHERE IdPresupuesto = @id";
         
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
@@ -79,9 +83,10 @@ public class PresupuestosRepository
             {
                 return new Presupuesto
                 {
-                    IdPresupuesto = Convert.ToInt32(reader["id"]),
-                    NombreDestinatario = reader["nombreDestinatario"].ToString(),
-                    FechaCreacion = DateTime.Parse(reader["fechaCreacion"].ToString()),
+                    // CORREGIDO: Nombres de columnas
+                    IdPresupuesto = Convert.ToInt32(reader["IdPresupuesto"]),
+                    NombreDestinatario = reader["NombreDestinatario"].ToString(),
+                    FechaCreacion = DateTime.Parse(reader["FechaCreacion"].ToString()),
                     Detalle = ObtenerDetallesPresupuesto(id)
                 };
             }
@@ -91,7 +96,8 @@ public class PresupuestosRepository
 
     public void AgregarProductoAPresupuesto(int presupuestoId, int productoId, int cantidad)
     {
-        var query = @"INSERT INTO PresupuestosDetalle (presupuestoId, productoId, cantidad) 
+        // CORREGIDO: Nombres de columnas
+        var query = @"INSERT INTO PresupuestosDetalle (IdPresupuesto, IdProducto, Cantidad) 
                      VALUES (@presupuestoId, @productoId, @cantidad)";
         
         using var conexion = new SqliteConnection(cadenaConexion);
@@ -107,9 +113,9 @@ public class PresupuestosRepository
 
     public bool Delete(int id)
     {
-        // Primero eliminamos los detalles
-        var queryDetalle = "DELETE FROM PresupuestosDetalle WHERE presupuestoId = @id";
-        var queryPresupuesto = "DELETE FROM Presupuestos WHERE id = @id";
+        // CORREGIDO: Nombres de columnas
+        var queryDetalle = "DELETE FROM PresupuestosDetalle WHERE IdPresupuesto = @id";
+        var queryPresupuesto = "DELETE FROM Presupuestos WHERE IdPresupuesto = @id";
         
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
@@ -127,10 +133,11 @@ public class PresupuestosRepository
     private List<PresupuestosDetalle> ObtenerDetallesPresupuesto(int presupuestoId)
     {
         var detalles = new List<PresupuestosDetalle>();
-        var query = @"SELECT pd.*, p.* 
+        // CORREGIDO: Nombres de columnas
+        var query = @"SELECT pd.Cantidad, p.IdProducto, p.Descripcion, p.Precio 
                      FROM PresupuestosDetalle pd 
-                     INNER JOIN Productos p ON pd.productoId = p.id 
-                     WHERE pd.presupuestoId = @id";
+                     INNER JOIN Productos p ON pd.IdProducto = p.IdProducto 
+                     WHERE pd.IdPresupuesto = @id";
         
         using var conexion = new SqliteConnection(cadenaConexion);
         conexion.Open();
@@ -143,12 +150,13 @@ public class PresupuestosRepository
             {
                 var detalle = new PresupuestosDetalle
                 {
-                    Cantidad = Convert.ToInt32(reader["cantidad"]),
+                    // CORREGIDO: Nombres de columnas
+                    Cantidad = Convert.ToInt32(reader["Cantidad"]),
                     Producto = new Productos
                     {
-                        IdProducto = Convert.ToInt32(reader["productoId"]),
+                        IdProducto = Convert.ToInt32(reader["IdProducto"]),
                         Descripcion = reader["Descripcion"].ToString(),
-                        Precio = Convert.ToInt32(reader["precio"])
+                        Precio = Convert.ToDouble(reader["Precio"]) 
                     }
                 };
                 detalles.Add(detalle);

@@ -12,7 +12,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <None Update="Db\Tienda.db">
+    <None Update="Db/Tienda.db">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
