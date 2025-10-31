@@ -14,10 +14,6 @@ public class Presupuesto
     public double MontoPresupuesto()
     {
         double montoTotal = 0;
-        foreach(var item in Detalle)
-        {
-            montoTotal += item.Producto.Precio * item.Cantidad;
-        }
         return montoTotal;
     }
 
