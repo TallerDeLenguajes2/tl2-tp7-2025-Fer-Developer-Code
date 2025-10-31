@@ -9,6 +9,7 @@ namespace TP7.PresupuestosRepositorySpace;
 
 public class PresupuestosRepository
 {
+    // Cadena de conexión readonly para prevenir modificaciones accidentales
     private readonly string cadenaConexion;
 
     public PresupuestosRepository()
@@ -16,22 +17,29 @@ public class PresupuestosRepository
         cadenaConexion = "Data Source=DB/Tienda.db";
     }
 
+    /// <summary>
+    /// Crea un nuevo presupuesto con sus detalles en la base de datos usando una transacción
+    /// </summary>
     public Presupuesto Create(Presupuesto presupuesto)
     {
+        // Query principal para insertar el presupuesto
+        // El @ permite escribir strings multilínea para mejor legibilidad
         const string query = @"
             INSERT INTO Presupuestos (
-                NombreDestinatario, 
-                FechaCreacion
+                NombreDestinatario,  -- Nombre de quien recibe el presupuesto
+                FechaCreacion       -- Fecha en que se crea el presupuesto
             ) VALUES (
-                @nombre, 
-                @fecha
+                @nombre,            -- Parámetro para evitar SQL injection
+                @fecha             -- Parámetro para evitar SQL injection
             );
-            SELECT last_insert_rowid();";
+            SELECT last_insert_rowid();"; //Obtiene el ID del nuevo presupuesto
 
         try
         {
             using var conexion = new SqliteConnection(cadenaConexion);
             conexion.Open();
+            
+            // Iniciamos una transacción para garantizar la integridad de los datos
             using var transaction = conexion.BeginTransaction();
 
             try
@@ -40,13 +48,15 @@ public class PresupuestosRepository
                 command.Parameters.AddWithValue("@nombre", presupuesto.NombreDestinatario);
                 command.Parameters.AddWithValue("@fecha", presupuesto.FechaCreacion);
 
+                // Guardamos el ID generado en el objeto presupuesto
                 presupuesto.IdPresupuesto = Convert.ToInt32(command.ExecuteScalar());
 
-                // Agregar detalles del presupuesto
+                // Si hay detalles, los insertamos uno por uno
                 if (presupuesto.Detalle != null)
                 {
                     foreach (var detalle in presupuesto.Detalle)
                     {
+                        // Usamos un método auxiliar para mantener el código organizado
                         AgregarProductoAPresupuestoConTransaction(
                             presupuesto.IdPresupuesto,
                             detalle.Producto.IdProducto,
@@ -57,11 +67,13 @@ public class PresupuestosRepository
                     }
                 }
 
+                // Commit confirma todos los cambios de la transacción
                 transaction.Commit();
                 return presupuesto;
             }
             catch
             {
+                // Si algo falla, deshacemos todos los cambios
                 transaction.Rollback();
                 throw;
             }
@@ -188,24 +200,37 @@ public class PresupuestosRepository
         return rowsAffected > 0;
     }
 
+    /// <summary>
+    /// Obtiene los detalles de un presupuesto usando un JOIN con la tabla Productos
+    /// </summary>
     private List<PresupuestosDetalle> ObtenerDetallesPresupuesto(int presupuestoId)
     {
+        // Esta consulta usa JOIN para obtener los datos del producto relacionado
+        const string query = @"
+            SELECT 
+                pd.Cantidad,           -- Cantidad del producto en el presupuesto
+                p.IdProducto,          -- ID del producto
+                p.Descripcion,         -- Descripción del producto
+                p.Precio              -- Precio del producto
+            FROM PresupuestosDetalle pd 
+            INNER JOIN Productos p ON pd.IdProducto = p.IdProducto 
+            WHERE pd.IdPresupuesto = @id";
+
         var detalles = new List<PresupuestosDetalle>();
-        // CORREGIDO: Nombres de columnas
-        var query = @"SELECT pd.Cantidad, p.IdProducto, p.Descripcion, p.Precio 
-                     FROM PresupuestosDetalle pd 
-                     INNER JOIN Productos p ON pd.IdProducto = p.IdProducto 
-                     WHERE pd.IdPresupuesto = @id";
         
-        using var conexion = new SqliteConnection(cadenaConexion);
-        conexion.Open();
-        var command = new SqliteCommand(query, conexion);
-        command.Parameters.Add(new SqliteParameter("@id", presupuestoId));
-        
-        using (var reader = command.ExecuteReader())
+        try
         {
+            using var conexion = new SqliteConnection(cadenaConexion);
+            conexion.Open();
+            using var command = new SqliteCommand(query, conexion);
+            
+            // Uso seguro de parámetros para evitar SQL injection
+            command.Parameters.AddWithValue("@id", presupuestoId);
+            
+            using var reader = command.ExecuteReader();
             while (reader.Read())
             {
+                // Creamos objetos PresupuestosDetalle con los datos de la BD
                 var detalle = new PresupuestosDetalle
                 {
                     Cantidad = Convert.ToInt32(reader["Cantidad"]),
@@ -213,12 +238,17 @@ public class PresupuestosRepository
                     {
                         IdProducto = Convert.ToInt32(reader["IdProducto"]),
                         Descripcion = reader["Descripcion"].ToString(),
-                        Precio = Convert.ToDecimal(reader["Precio"]) 
+                        Precio = Convert.ToDecimal(reader["Precio"])
                     }
                 };
                 detalles.Add(detalle);
             }
         }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error al obtener detalles del presupuesto {presupuestoId}: " + ex.Message);
+        }
+
         return detalles;
     }
 }

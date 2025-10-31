@@ -7,46 +7,59 @@ namespace TP7.ProductoRepositorySpace;
 
 public class ProductoRepository
 {
+    // El readonly garantiza que la cadena de conexión no pueda ser modificada después de su inicialización
     private readonly string cadenaConexion;
 
     public ProductoRepository()
     {
-        // Conexión a la base de datos SQLite
+        // Data Source indica la ubicación de la base de datos SQLite
         cadenaConexion = "Data Source=DB/Tienda.db";
     }
 
     public List<Productos> GetProducts()
     {
-        var listadoProductos = new List<Productos>();
-        
-        // Consulta parametrizada para evitar SQL injection
+        // La consulta SQL usa un formato multilínea para mejor legibilidad
+        // El @ antes del string permite escribir en múltiples líneas sin usar \n
         const string query = @"
-            SELECT *
+            SELECT IdProducto, 
+                   Descripcion, 
+                   Precio 
             FROM Productos";
 
         try
         {
+            // using garantiza que los recursos se liberen correctamente
+            // SqliteConnection maneja la conexión con la base de datos
             using var conexion = new SqliteConnection(cadenaConexion);
             conexion.Open();
+
+            // SqliteCommand representa la consulta SQL que vamos a ejecutar
             using var command = new SqliteCommand(query, conexion);
 
+            // ExecuteReader() se usa para consultas que devuelven múltiples registros
             using var reader = command.ExecuteReader();
+            var listadoProductos = new List<Productos>();
+
+            // Read() avanza registro por registro hasta el final
             while (reader.Read())
             {
-                listadoProductos.Add(new Productos
+                // Convertimos cada registro a un objeto Productos
+                var producto = new Productos
                 {
+                    // Convert.ToXXX asegura una conversión segura entre tipos de datos
                     IdProducto = Convert.ToInt32(reader["IdProducto"]),
                     Descripcion = reader["Descripcion"].ToString(),
                     Precio = Convert.ToDecimal(reader["Precio"])
-                });
+                };
+                listadoProductos.Add(producto);
             }
+            return listadoProductos;
         }
         catch (Exception ex)
         {
+            // Propagamos el error con contexto adicional
             throw new Exception("Error al obtener productos: " + ex.Message);
         }
-
-        return listadoProductos;
     }
 
     public Productos GetById(int id)
@@ -87,22 +100,36 @@ public class ProductoRepository
 
     public Productos Create(Productos producto)
     {
-        // CORREGIDO: Nombres de columnas
-        var query = @"INSERT INTO Productos (Descripcion, Precio) VALUES (@descripcion, @precio);
-                     SELECT last_insert_rowid();"; 
-        
-        using var conexion = new SqliteConnection(cadenaConexion);
-        conexion.Open();
-        var command = new SqliteCommand(query, conexion);
-        
-        command.Parameters.Add(new SqliteParameter("@descripcion", producto.Descripcion));
-        command.Parameters.Add(new SqliteParameter("@precio", producto.Precio));
-        
-        // ExecuteScalar devuelve un 'long' (Int64), es más seguro convertirlo así
-        producto.IdProducto = Convert.ToInt32(command.ExecuteScalar());
-        conexion.Close();
-        
-        return producto;
+        // Los parámetros @descripcion y @precio son marcadores que previenen SQL injection
+        // SQL injection es un ataque donde el usuario intenta inyectar código SQL malicioso
+        const string query = @"
+            INSERT INTO Productos (
+                Descripcion, 
+                Precio
+            ) VALUES (
+                @descripcion, 
+                @precio
+            );
+            SELECT last_insert_rowid();"; // Obtiene el ID del último registro insertado
+
+        try
+        {
+            using var conexion = new SqliteConnection(cadenaConexion);
+            conexion.Open();
+            using var command = new SqliteCommand(query, conexion);
+
+            // AddWithValue asocia un valor con un parámetro de manera segura
+            command.Parameters.AddWithValue("@descripcion", producto.Descripcion);
+            command.Parameters.AddWithValue("@precio", producto.Precio);
+
+            // ExecuteScalar() se usa cuando esperamos un único valor de retorno
+            producto.IdProducto = Convert.ToInt32(command.ExecuteScalar());
+            return producto;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error al crear producto: " + ex.Message);
+        }
     }
 
     public bool Update(int id, Productos producto)
